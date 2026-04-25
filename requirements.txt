@@ -1,0 +1,15 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+sentence-transformers==3.1.1
+scikit-learn==1.5.2
+numpy==1.26.4
+pydantic==2.9.2
+python-dateutil==2.9.0
+groq
+python-dotenv
+
+# Agent 2 — Dispatcher
+langgraph==0.2.60
+langchain==0.3.14
+langchain-anthropic==0.3.4
+apscheduler==3.10.4
