@@ -98,7 +98,9 @@ def process_call(transcript: str) -> dict:
         cot = f"CREATED: Incident at {incident['location']} with Severity {incident['severity']}."
 
     # --- STEP 6: WRITE TO MEMORY ---
-    write_incident_memory(incident)
+    write_status = write_incident_memory(incident)
+    if write_status.startswith("error"):
+        raise RuntimeError(f"Failed to save incident: {write_status}")
     
     # --- STEP 7: OUTPUT ---
     return {

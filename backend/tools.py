@@ -148,16 +148,11 @@ def write_incident_memory(incident: dict) -> str:
             else:
                 incidents.append(incident)
 
-            fd, tmp_path = tempfile.mkstemp(dir=str(DATA_DIR), suffix=".json.tmp")
-            try:
-                with os.fdopen(fd, "w") as tmp_file:
-                    json.dump(incidents, tmp_file, indent=2, default=str)
-                os.replace(tmp_path, str(INCIDENTS_FILE))
-            except Exception:
-                if os.path.exists(tmp_path): os.unlink(tmp_path)
-                raise
+            with open(INCIDENTS_FILE, "w") as f:
+                json.dump(incidents, f, indent=2, default=str)
         return "written"
     except Exception as e:
+        print(f"[ERROR] Failed to write incident memory: {e}")
         return f"error: {str(e)}"
 
 
