@@ -83,6 +83,12 @@ $dispatchBtn.addEventListener('click', async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ transcript })
         });
+        
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP Error ${res.status}: ${errText}`);
+        }
+        
         const data = await res.json();
 
         if ($cotBox) {
@@ -96,6 +102,7 @@ $dispatchBtn.addEventListener('click', async () => {
         console.log("✅ Dispatch Complete.");
     } catch (err) {
         console.error("❌ Dispatch failed:", err);
+        alert("Server Error: Check Render Logs. " + err.message);
     } finally {
         $dispatchBtn.disabled = false;
         if (btnText) btnText.innerText = originalText;
@@ -117,6 +124,10 @@ if ($resetBtn) {
 async function updateIncidents() {
     try {
         const res = await fetch(`${API_BASE}/incidents`);
+        if (!res.ok) {
+            console.error("Failed to fetch incidents:", res.status);
+            return;
+        }
         const data = await res.json();
         let incidents = data.incidents || [];
         
