@@ -1,5 +1,6 @@
 /**
  * Smart City Emergency Dispatch — Complete Control Center UI
+ * [CLEAN VERSION - NO MAP]
  */
 
 const API_BASE = ''; 
@@ -41,12 +42,14 @@ function updateClock() {
 if ($cotToggle) {
     $cotToggle.addEventListener('click', () => {
         $reasoningBox.classList.toggle('collapsed');
-        $cotToggle.querySelector('.cot-chevron').style.transform = 
-            $reasoningBox.classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
+        const chevron = $cotToggle.querySelector('.cot-chevron');
+        if (chevron) {
+            chevron.style.transform = $reasoningBox.classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
     });
 }
 
-// ─── PRESETS ───
+// ─── PRESET BUTTONS ───
 document.querySelectorAll('.preset-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const presetKey = btn.getAttribute('data-preset');
@@ -63,17 +66,18 @@ if ($input) {
     });
 }
 
-// ─── DISPATCH ───
+// ─── DISPATCH CALL ACTION ───
 $dispatchBtn.addEventListener('click', async () => {
     const transcript = $input.value.trim();
     if (!transcript) return;
 
     $dispatchBtn.disabled = true;
     const btnText = $dispatchBtn.querySelector('.btn-text');
-    const originalText = btnText.innerText;
-    btnText.innerText = 'Analyzing...';
+    const originalText = btnText ? btnText.innerText : 'DISPATCH CALL';
+    if (btnText) btnText.innerText = 'Analyzing...';
 
     try {
+        console.log("📤 Dispatching call...");
         const res = await fetch(`${API_BASE}/process-call`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -89,44 +93,46 @@ $dispatchBtn.addEventListener('click', async () => {
         
         await updateIncidents();
         $input.value = '';
+        console.log("✅ Dispatch Complete.");
     } catch (err) {
-        console.error("Dispatch failed:", err);
+        console.error("❌ Dispatch failed:", err);
     } finally {
-        $dispatchBtn.disabled = true;
-        btnText.innerText = originalText;
+        $dispatchBtn.disabled = false;
+        if (btnText) btnText.innerText = originalText;
     }
 });
 
-// ─── RESET ───
+// ─── RESET DEMO ───
 if ($resetBtn) {
     $resetBtn.addEventListener('click', async () => {
-        if (!confirm("Clear all incidents?")) return;
+        if (!confirm("Reset all incidents?")) return;
         try {
             await fetch(`${API_BASE}/incidents/clear`, { method: 'DELETE' });
             window.location.reload();
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("Reset failed:", err); }
     });
 }
 
-// ─── UPDATE BOARD ───
+// ─── UPDATE INCIDENT BOARD ───
 async function updateIncidents() {
     try {
         const res = await fetch(`${API_BASE}/incidents`);
         const data = await res.json();
         let incidents = data.incidents || [];
         
-        // SORT BY PRIORITY
-        incidents.sort((a, b) => {
-            if (b.severity !== a.severity) return b.severity - a.severity;
-            if (b.caller_count !== a.caller_count) return b.caller_count - a.caller_count;
-            return new Date(a.timestamp) - new Date(b.timestamp);
-        });
+        // SORT BY PRIORITY (Severity then Caller Count)
+        incidents.sort((a, b) => (b.severity - a.severity) || (b.caller_count - a.caller_count));
 
         if ($incidentCount) $incidentCount.textContent = incidents.length;
         if (!$incidentList) return;
 
         if (incidents.length === 0) {
-            $incidentList.innerHTML = `<div class="empty-state"><h3>No Active Incidents</h3></div>`;
+            $incidentList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🛡️</div>
+                    <h3>System Ready</h3>
+                    <p>Awaiting incoming emergency calls...</p>
+                </div>`;
             if ($callCount) $callCount.textContent = '0';
             return;
         }
@@ -140,7 +146,7 @@ async function updateIncidents() {
             
             const formatName = (str) => str.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-            // 1. Dept Reports
+            // 1. Department Reports
             let deptHtml = "";
             if (inc.department_reports) {
                 const reports = Object.entries(inc.department_reports).map(([key, val]) => `
@@ -197,7 +203,7 @@ async function updateIncidents() {
             `;
         }).join('');
         if ($callCount) $callCount.textContent = totalCalls;
-    } catch (err) { console.error("Poll failed:", err); }
+    } catch (err) { console.error("Update loop failed:", err); }
 }
 
 function renderReasoning(cot, isDuplicate) {

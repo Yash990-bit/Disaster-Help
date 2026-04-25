@@ -239,6 +239,37 @@ def analyze_transcript_with_llm(transcript: str) -> dict:
         print(f"[LLM ERROR] {e}")
         return {"severity": 2, "location": "Unknown", "required_resources": ["police"], "reasoning": "Fallback active.", "confidence_score": 0.5}
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# TOOL 8: geocode_location_ors (Real-World API)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def geocode_location_ors(location_text: str) -> list[float]:
+    """Converts an address or landmark into [lon, lat] using ORS API."""
+    import requests
+    ors_key = os.getenv("ORS_API_KEY")
+    
+    # Fallback coordinates for Sonipat City Center
+    SONIPAT_CENTER = [77.0176, 28.9948]
+
+    if not ors_key or not location_text or location_text.lower() == "unknown":
+        return SONIPAT_CENTER
+
+    try:
+        # Search specifically within Sonipat/Haryana region for better accuracy
+        url = f"https://api.openrouteservice.org/geocode/search?api_key={ors_key}&text={location_text}&size=1&boundary.country=IN"
+        res = requests.get(url, timeout=5)
+        data = res.json()
+        
+        if data.get("features"):
+            coords = data["features"][0]["geometry"]["coordinates"] # [lon, lat]
+            print(f"[GEOCODER] Found coordinates for '{location_text}': {coords}")
+            return coords
+    except Exception as e:
+        print(f"[GEOCODER ERROR] {e}")
+
+    return SONIPAT_CENTER
+
+
 def derive_departments(resources: list) -> list:
     mapping = {
         "ambulance": "EMS",

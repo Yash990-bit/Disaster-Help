@@ -11,7 +11,8 @@ from backend.tools import (
     get_timestamp,
     generate_incident_id,
     analyze_transcript_with_llm,
-    derive_departments
+    derive_departments,
+    geocode_location_ors
 )
 
 def process_call(transcript: str) -> dict:
@@ -71,6 +72,10 @@ def process_call(transcript: str) -> dict:
         old_emb = np.array(incident["embedding"])
         new_emb = np.array(current_embedding)
         incident["embedding"] = ((old_emb + new_emb) / 2).tolist()
+
+        # Update coordinates if they exist (Averaging)
+        if "coordinates" not in incident:
+            incident["coordinates"] = geocode_location_ors(incident["location"])
         
         cot = f"MERGED: Severity upgraded to {new_severity}. Location confirmed: {incident['location']}."
     else:
@@ -87,7 +92,8 @@ def process_call(transcript: str) -> dict:
             "claimed_by": None,
             "timestamp": get_timestamp(),
             "raw_transcripts": [transcript],
-            "embedding": current_embedding
+            "embedding": current_embedding,
+            "coordinates": geocode_location_ors(new_call_data["location"])
         }
         cot = f"CREATED: Incident at {incident['location']} with Severity {incident['severity']}."
 
